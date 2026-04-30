@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="3D Warehouse Packing Optimizer - An interactive tool for optimizing 3D box packing using greedy heuristic algorithms. Visualize packing solutions in real-time 3D.">
+    <title>3D Warehouse Packing Optimizer</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <!-- ===== ANIMATED BACKGROUND PARTICLES ===== -->
+    <div class="bg-particles" id="bgParticles"></div>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header" id="header">
+        <div class="header-inner">
+            <div class="logo-group">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="4" y="14" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="rgba(99,102,241,0.2)"/>
+                        <rect x="12" y="8" width="14" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="rgba(168,85,247,0.2)"/>
+                        <rect x="22" y="16" width="10" height="10" rx="2" stroke="currentColor" stroke-width="2" fill="rgba(236,72,153,0.2)"/>
+                        <path d="M2 32 L20 38 L38 32 L38 18 L20 12 L2 18Z" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="header-title">3D Warehouse Packing Optimizer</h1>
+                    <p class="header-subtitle">Greedy Heuristic &bull; 3D Knapsack Approximation</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-ghost" id="btnAbout" onclick="toggleAboutModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    About
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <!-- LEFT PANEL: INPUTS -->
+        <section class="panel input-panel" id="inputPanel">
+            <div class="panel-header">
+                <h2 class="panel-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+                    Configuration
+                </h2>
+                <span class="badge badge-info">Input</span>
+            </div>
+
+            <!-- Warehouse Dimensions -->
+            <div class="card" id="warehouseCard">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon warehouse-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/></svg>
+                        </span>
+                        Warehouse Dimensions
+                    </h3>
+                </div>
+                <div class="input-grid input-grid-3">
+                    <div class="input-group">
+                        <label for="warehouseLength">Length</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="warehouseLength" value="20" min="1" max="100" step="1">
+                            <span class="input-unit">units</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="warehouseWidth">Width</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="warehouseWidth" value="15" min="1" max="100" step="1">
+                            <span class="input-unit">units</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="warehouseHeight">Height</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="warehouseHeight" value="10" min="1" max="100" step="1">
+                            <span class="input-unit">units</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="warehouse-volume-display">
+                    <span>Total Volume:</span>
+                    <span id="warehouseVolume" class="volume-value">3,000 units³</span>
+                </div>
+            </div>
+
+            <!-- Items Configuration -->
+            <div class="card" id="itemsCard">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon items-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"/></svg>
+                        </span>
+                        Items to Pack
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-outline" id="btnAddItem" onclick="addItemRow()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                            Add Item
+                        </button>
+                        <button class="btn btn-sm btn-outline btn-danger" id="btnClearItems" onclick="clearAllItems()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M5 6l1 14h12l1-14"/></svg>
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Items Table Header -->
+                <div class="items-table-header">
+                    <span class="col-num">#</span>
+                    <span class="col-dim">Length</span>
+                    <span class="col-dim">Width</span>
+                    <span class="col-dim">Height</span>
+                    <span class="col-val">Value ($)</span>
+                    <span class="col-act"></span>
+                </div>
+
+                <!-- Items List -->
+                <div class="items-list" id="itemsList">
+                    <!-- Items will be dynamically generated -->
+                </div>
+
+                <div class="items-summary">
+                    <span>Total Items: <strong id="totalItemCount">0</strong></span>
+                    <span>Total Volume: <strong id="totalItemVolume">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Options -->
+            <div class="card" id="optionsCard">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon options-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                        </span>
+                        Options
+                    </h3>
+                </div>
+                <div class="options-grid">
+                    <label class="toggle-option">
+                        <input type="checkbox" id="allowRotation" checked>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">Allow Box Rotation</span>
+                    </label>
+                    <label class="toggle-option">
+                        <input type="checkbox" id="animatePacking" checked>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">Animate Packing</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-primary btn-lg" id="btnOptimize" onclick="optimizePacking()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    Optimize Packing
+                </button>
+                <button class="btn btn-outline btn-lg" id="btnReset" onclick="resetAll()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Reset All
+                </button>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: VISUALIZATION + RESULTS -->
+        <section class="panel output-panel" id="outputPanel">
+            <!-- 3D Visualization -->
+            <div class="card viz-card" id="vizCard">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon viz-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                        </span>
+                        3D Visualization
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-ghost" id="btnResetCamera" onclick="resetCamera()" title="Reset Camera">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="viz-container" id="vizContainer">
+                    <canvas id="threeCanvas"></canvas>
+                    <div class="viz-overlay" id="vizOverlay">
+                        <div class="viz-placeholder">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                            <p>Configure items and click <strong>"Optimize Packing"</strong></p>
+                            <p class="viz-hint">The 3D visualization will appear here</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="viz-controls">
+                    <span class="viz-control-hint">🖱️ Left-click: Rotate &bull; Scroll: Zoom &bull; Right-click: Pan</span>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card" id="statValue">
+                    <div class="stat-icon stat-icon-value">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Total Value</span>
+                        <span class="stat-number" id="statTotalValue">$0</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="statUtilization">
+                    <div class="stat-icon stat-icon-util">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Space Used</span>
+                        <span class="stat-number" id="statSpaceUsed">0%</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="statPacked">
+                    <div class="stat-icon stat-icon-packed">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Items Packed</span>
+                        <span class="stat-number" id="statItemsPacked">0 / 0</span>
+                    </div>
+                </div>
+                <div class="stat-card" id="statVolume">
+                    <div class="stat-icon stat-icon-vol">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <span class="stat-label">Volume Packed</span>
+                        <span class="stat-number" id="statVolumePacked">0 units³</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div class="card results-card" id="resultsCard">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <span class="card-icon results-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </span>
+                        Packing Results
+                    </h3>
+                    <span class="badge badge-success" id="resultsBadge" style="display:none;">Optimized</span>
+                </div>
+                <div class="results-table-wrapper" id="resultsTableWrapper">
+                    <div class="results-empty" id="resultsEmpty">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+                        <p>No packing results yet</p>
+                        <p class="results-hint">Run the optimizer to see results</p>
+                    </div>
+                    <table class="results-table" id="resultsTable" style="display:none;">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Dimensions (L×W×H)</th>
+                                <th>Position (X, Y, Z)</th>
+                                <th>Volume</th>
+                                <th>Value</th>
+                                <th>Ratio</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Unpacked Items -->
+                <div id="unpackedSection" style="display:none;">
+                    <div class="unpacked-header">
+                        <h4>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                            Items Not Packed
+                        </h4>
+                    </div>
+                    <table class="results-table unpacked-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Dimensions (L×W×H)</th>
+                                <th>Volume</th>
+                                <th>Value</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="unpackedBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===== ABOUT MODAL ===== -->
+    <div class="modal-overlay" id="aboutModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>About This Project</h2>
+                <button class="btn btn-ghost btn-sm" onclick="toggleAboutModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <h3>3D Warehouse Packing Optimizer</h3>
+                <p>This is an educational tool demonstrating the <strong>3D Bin Packing Problem</strong>, a variant of the NP-hard 3D Knapsack problem. The tool uses a <strong>greedy heuristic</strong> approach to approximate optimal packing solutions.</p>
+                
+                <h4>Algorithm Details</h4>
+                <ul>
+                    <li><strong>Strategy:</strong> Greedy approach based on value-to-volume ratio</li>
+                    <li><strong>Placement:</strong> Best-fit decreasing with 3D spatial tracking</li>
+                    <li><strong>Rotation:</strong> Optional — tries all 6 orientations per item</li>
+                    <li><strong>Collision:</strong> Full 3D overlap detection ensures valid placements</li>
+                </ul>
+
+                <h4>Technologies Used</h4>
+                <ul>
+                    <li>HTML5, CSS3, Vanilla JavaScript</li>
+                    <li>Three.js for 3D WebGL visualization</li>
+                    <li>Greedy heuristic algorithm</li>
+                </ul>
+
+                <h4>How to Use</h4>
+                <ol>
+                    <li>Set warehouse dimensions</li>
+                    <li>Add items with length, width, height, and value</li>
+                    <li>Toggle rotation and animation options</li>
+                    <li>Click "Optimize Packing" to run the algorithm</li>
+                    <li>View results in the 3D viewer and results table</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== TOAST CONTAINER ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <p>3D Warehouse Packing Optimizer &bull; Educational Tool &bull; Greedy Heuristic Algorithm</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
